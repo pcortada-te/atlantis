@@ -491,6 +491,10 @@ func TestPlanSuccess_Summary(t *testing.T) {
 			"\n**Note: Objects have changed outside of Terraform**\nPlan: 0 to add, 1 to change, 2 to destroy.",
 		},
 		{
+			"dummy\nNo changes. No objects need to be destroyed.\nWarning: Deprecated attribute",
+			"No changes. No objects need to be destroyed.",
+		},
+		{
 			"dummy\nPlan: 100 to add, 111 to change, 222 to destroy.",
 			"Plan: 100 to add, 111 to change, 222 to destroy.",
 		},
@@ -537,6 +541,10 @@ func TestPlanSuccess_DiffSummary(t *testing.T) {
 		{
 			"Note: Objects have changed outside of Terraform\ndummy\nPlan: 0 to add, 1 to change, 2 to destroy.",
 			"Plan: 0 to add, 1 to change, 2 to destroy.",
+		},
+		{
+			"dummy\nNo changes. No objects need to be destroyed.\nWarning: Deprecated attribute",
+			"No changes. No objects need to be destroyed.",
 		},
 		{
 			"dummy\nPlan: 100 to add, 111 to change, 222 to destroy.",
@@ -605,6 +613,31 @@ func TestPlanSuccess_NoChanges(t *testing.T) {
 			exp:   true,
 		},
 		{
+			name:  "current no changes message",
+			input: "No changes. Your infrastructure matches the configuration.",
+			exp:   true,
+		},
+		{
+			name:  "empty destroy",
+			input: "No changes. No objects need to be destroyed.",
+			exp:   true,
+		},
+		{
+			name:  "empty destroy with provider warning",
+			input: "No changes. No objects need to be destroyed.\nWarning: Deprecated attribute",
+			exp:   true,
+		},
+		{
+			name:  "output-only changes",
+			input: "Changes to Outputs:\n  - example = \"old\" -> null\nPlan: 0 to add, 0 to change, 0 to destroy.",
+			exp:   false,
+		},
+		{
+			name:  "output-only changes without resource summary",
+			input: "Changes to Outputs:\n  - example = \"old\" -> null",
+			exp:   false,
+		},
+		{
 			name:  "changes",
 			input: "dummy\nPlan: 1 to add, 0 to change, 0 to destroy.",
 			exp:   false,
@@ -617,6 +650,36 @@ func TestPlanSuccess_NoChanges(t *testing.T) {
 		{
 			name:  "multiple units mixed changes and no changes",
 			input: "unit1\nNo changes. Infrastructure is up-to-date.\nunit2\nPlan: 4 to add, 0 to change, 0 to destroy.",
+			exp:   false,
+		},
+		{
+			name:  "empty destroy followed by create",
+			input: "unit1\nNo changes. No objects need to be destroyed.\nunit2\nPlan: 1 to add, 0 to change, 0 to destroy.",
+			exp:   false,
+		},
+		{
+			name:  "empty destroy followed by update",
+			input: "unit1\nNo changes. No objects need to be destroyed.\nunit2\nPlan: 0 to add, 1 to change, 0 to destroy.",
+			exp:   false,
+		},
+		{
+			name:  "empty destroy followed by destroy",
+			input: "unit1\nNo changes. No objects need to be destroyed.\nunit2\nPlan: 0 to add, 0 to change, 1 to destroy.",
+			exp:   false,
+		},
+		{
+			name:  "empty destroy followed by import",
+			input: "unit1\nNo changes. No objects need to be destroyed.\nunit2\nPlan: 1 to import, 0 to add, 0 to change, 0 to destroy.",
+			exp:   false,
+		},
+		{
+			name:  "empty destroy followed by forget",
+			input: "unit1\nNo changes. No objects need to be destroyed.\nunit2\nPlan: 0 to add, 0 to change, 0 to destroy, 1 to forget.",
+			exp:   false,
+		},
+		{
+			name:  "empty destroy followed by output-only",
+			input: "unit1\nNo changes. No objects need to be destroyed.\nunit2\nPlan: 0 to add, 0 to change, 0 to destroy.",
 			exp:   false,
 		},
 	}
