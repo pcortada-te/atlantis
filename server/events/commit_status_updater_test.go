@@ -349,6 +349,16 @@ func TestDefaultCommitStatusUpdater_UpdateProject(t *testing.T) {
 			expDescrip: "Plan: 1 to add, 2 to change, 3 to destroy.",
 		},
 		{
+			status: models.SuccessCommitStatus,
+			cmd:    command.Plan,
+			result: &command.ProjectCommandOutput{
+				PlanSuccess: &models.PlanSuccess{
+					TerraformOutput: "No changes. No objects need to be destroyed.\nWarning: Deprecated attribute",
+				},
+			},
+			expDescrip: "No changes. No objects need to be destroyed.",
+		},
+		{
 			status:     models.PendingCommitStatus,
 			cmd:        command.Apply,
 			expDescrip: "Apply in progress...",

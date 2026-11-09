@@ -5146,3 +5146,52 @@ Ran Plan for 3 projects:
 		})
 	}
 }
+
+func TestRenderEmptyDestroyPlans(t *testing.T) {
+	for _, hide := range []bool{false, true} {
+		t.Run(fmt.Sprintf("hide unchanged %t", hide), func(t *testing.T) {
+			r := events.NewMarkdownRenderer(false, false, false, false, false, false, "", "atlantis", hide, false)
+			ctx := &command.Context{
+				Log:  logging.NewNoopLogger(t),
+				Pull: models.PullRequest{BaseRepo: models.Repo{VCSHost: models.VCSHost{Type: models.Github}}},
+			}
+			outputs := []string{
+				"No changes. Your infrastructure matches the configuration.",
+				"No changes. No objects need to be destroyed.\nWarning: Deprecated attribute",
+				"Plan: 0 to add, 0 to change, 1 to destroy.",
+				"Changes to Outputs:\n  - example = \"old\" -> null\nPlan: 0 to add, 0 to change, 0 to destroy.",
+			}
+			var results []command.ProjectResult
+			for i, output := range outputs {
+				results = append(results, command.ProjectResult{
+					RepoRelDir: fmt.Sprintf("project%d", i),
+					Workspace:  "default",
+					ProjectCommandOutput: command.ProjectCommandOutput{
+						PlanSuccess: &models.PlanSuccess{TerraformOutput: output},
+					},
+				})
+			}
+			results = append(results, command.ProjectResult{
+				RepoRelDir:           "failed",
+				Workspace:            "default",
+				ProjectCommandOutput: command.ProjectCommandOutput{Error: errors.New("plan failed")},
+			})
+			cmd := &events.CommentCommand{Name: command.Plan}
+			rendered := r.Render(ctx, command.Result{ProjectResults: results}, cmd)
+			for i := range outputs {
+				heading := fmt.Sprintf("### %d. dir: `project%d`", i+1, i)
+				Equals(t, !hide || i >= 2, strings.Contains(rendered, heading))
+			}
+			Equals(t, !hide, strings.Contains(rendered, "Warning: Deprecated attribute"))
+			Assert(t, strings.Contains(rendered, "Changes to Outputs:"), rendered)
+			Assert(t, strings.Contains(rendered, "plan failed"), rendered)
+			Assert(t, strings.Contains(rendered, "5 projects, 2 with changes, 2 with no changes, 1 failed"), rendered)
+			Assert(t, !results[4].IsSuccessful(), "failed plan must remain unsuccessful")
+
+			// Explicit single-project plans retain the renderer's existing behavior.
+			single := r.Render(ctx, command.Result{ProjectResults: results[1:2]}, cmd)
+			Assert(t, strings.Contains(single, "No changes. No objects need to be destroyed."), single)
+			Assert(t, strings.Contains(single, "Warning: Deprecated attribute"), single)
+		})
+	}
+}

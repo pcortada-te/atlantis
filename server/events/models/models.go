@@ -549,7 +549,7 @@ var (
 	rePlanChanges    = regexp.MustCompile(
 		`Plan: (?:(\d+) to import, )?(\d+) to add, (\d+) to change, (\d+) to destroy(?:, (\d+) to forget)?\.`,
 	)
-	reNoChanges = regexp.MustCompile(`No changes. (Infrastructure is up-to-date|Your infrastructure matches the configuration).`)
+	reNoChanges = regexp.MustCompile(`No changes. (Infrastructure is up-to-date|Your infrastructure matches the configuration|No objects need to be destroyed).`)
 )
 
 // Summary extracts summaries of plan changes from TerraformOutput.
